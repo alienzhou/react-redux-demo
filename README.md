@@ -679,4 +679,162 @@ export default Nav;
 
 ![最终效果图goods页面](http://upload-images.jianshu.io/upload_images/6476654-c1e748c23f8d83cd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-现在在这个demo里，我们点击左侧的导航，右侧内容发生变化，并且页面不会刷新。基于React+Redux+React-router，我们实现了一个最基础版的SPA（单页应用）。
+现在在这个demo里，我们点击左侧的导航，右侧内容发生变化，浏览器不会刷新。基于React+Redux+React-router，我们实现了一个最基础版的SPA（单页应用）。
+
+# 额外的部分，异步请求
+
+如果你还记得在redux数据流部分，是怎么给goods页面传入数据的：`dispatch(actions.getGoods(GOODS))`，我们直接给`getGoods`这个`action`构造器传入`GOODS`列表，作为加载的数据。但是，在实际的应用场景中，往往，我们会在action中发送ajax请求，从后端获取数据；在等待数据获取的过程中，可能还会有一个loading效果；最后收到了response响应，再渲染响应页面。
+
+基于以上的场景，重新整理一下我们的action内的思路：
+
+1. component渲染完成后，触发一个action，`dispatch(actions.getGoods())`。这个action并不会带列表的参数，而是向后端请求结果。
+2. 在`getGoods()`这个方法里，主要会做这三件数：首先，触发一个`requestGoods`的action，用于表示现在正在请求数据；其次，会调用一个叫`fetchData()`的方法，这个就是向后端请求数据的方法；最后，在拿到数据后，再触发一个`receiveGoods`的action，用于标识请求完成并带上渲染的数据。
+3. 其他部分与之前类似。
+
+这里就有一个问题，基于上面的讨论，我们需要`actions.getGoods()`这个方法返回一个`function`来实现我们在步骤2里所说的三个功能；然而，目前项目中的`dispatch()`方法只能接受一个`object`类型作为参数。所以，我们需要改造`dispatch()`方法。
+
+改造的手段就是使用redux-thunk这个中间件。可以使action creator返回一个`function`（而不仅仅是`object`），并且使得dispatch方法可以接收一个`function`作为参数，通过这种改造使得action支持异步（或延迟）操作。
+
+那么如何来改造呢？首先为redux加入redux-thunk这个中间件
+```
+npm i --save redux-thunk
+```
+然后修改`store.js`
+```
+// store.js
+import {createStore, applyMiddleware, compose} from 'redux';
+import {rootReducer} from './reducer';
+import thunk from 'redux-thunk';
+
+const middleware = [thunk];
+export const store = createStore(rootReducer, compose(
+    applyMiddleware(...middleware)
+));
+```
+然后，基于之前的思路，整理action中的代码。在这里，我们使用setTimeout来模拟向后端请求数据：
+```
+// action/goods.js
+import {createAction} from 'redux-actions';
+
+const GOODS = [{
+    name: 'iPhone 7',
+    price: '6,888',
+    amount: 37
+}, {
+    name: 'iPad',
+    price: '3,488',
+    amount: 82
+}, {
+    name: 'MacBook Pro',
+    price: '11,888',
+    amount: 15
+}]; 
+
+const requestGoods = createAction('REQUEST_GOODS');
+const receiveGoods = createAction('RECEIVE_GOODS');
+
+const fetchData = () => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(GOODS);
+        }, 1500);
+    });
+};
+
+export const getGoods = () => async dispatch => {
+    dispatch(requestGoods());
+    let goods = await fetchData();
+    dispatch(receiveGoods(goods));
+};
+```
+相应地修改reducer中的代码
+```
+// reducer/goods.js
+import {handleActions} from 'redux-actions';
+
+export const goods = handleActions({
+    REQUEST_GOODS: (state, action) => ({
+        ...state,
+        isFetching: true
+    }),
+    RECEIVE_GOODS: (state, action) => ({
+        ...state,
+        isFetching: false,
+        data: action.payload
+    })
+}, {
+    isFetching: false,
+    data: []
+});
+```
+可以看到，我们添加了一个`isFetching`的状态来表示数据是否加载完毕。
+
+最后，还需要更新UI component层
+```
+// page/goods.js
+import React, { Component } from 'react';
+import {connect} from 'react-redux';
+import * as actions from '../action/goods';
+
+class Goods extends Component {
+    componentDidMount() {
+        let dispatch = this.props.dispatch;
+        dispatch(actions.getGoods());
+    }
+    render() {
+        return this.props.isFetching ? (<h1>Loading…</h1>) : (
+            <ul className="goods">
+                {
+                    this.props.goods.map((ele, idx) => (
+                        <li key={idx} style={{marginBottom: 20, listStyle: 'none'}}>
+                            <span>{ele.name}</span> | 
+                            <span>￥ {ele.price}</span> | 
+                            <span>剩余 {ele.amount} 件</span>
+                        </li>
+                    ))
+                }
+            </ul>
+        );
+    }
+}
+
+const mapStateToProps = (state, ownProps) => ({
+    isFetching: state.goods.isFetching,
+    goods: state.goods.data
+});
+
+export default connect(mapStateToProps)(Goods);
+```
+最终，访问`http://localhost:3000/goods`页面会有一个大约1.5s的loading效果，然后等“后端”数据返回后渲染出列表。
+
+![loading效果](http://upload-images.jianshu.io/upload_images/6476654-31f02cf83192276e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+![列表加载完毕](http://upload-images.jianshu.io/upload_images/6476654-c63f5cdf69659c53.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+# 最后的最后，如果你还没有走开
+再介绍一个redux调试神器——[redux-devTools](https://github.com/gaearon/redux-devtools)，可以在chrome插件中可以找到
+
+![redux-devTools extension](http://upload-images.jianshu.io/upload_images/6476654-2dd97c02d08631d5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+在开发者工具中使用，可以很方便的进行redux的调试
+
+![redux-devTools调试界面](http://upload-images.jianshu.io/upload_images/6476654-a19220d421015fe2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+![redux-devTools调试界面](http://upload-images.jianshu.io/upload_images/6476654-2dc20497ac24afce.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+当然，需要在代码中进行简单的配置。对`store.js`进行一些小修改
+```
+import {createStore, applyMiddleware, compose} from 'redux';
+import {rootReducer} from './reducer';
+import thunk from 'redux-thunk';
+
+const middleware = [thunk];
+// export const store = createStore(rootReducer, compose(
+//     applyMiddleware(...middleware)
+// ));
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+export const store = createStore(rootReducer, composeEnhancers(
+    applyMiddleware(...middleware)
+));
+```
+以上。
