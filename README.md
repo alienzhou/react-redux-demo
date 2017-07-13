@@ -1,4 +1,12 @@
-## 概述
+# 运行方式
+```
+npm i -g create-react-app
+cd $this_repo
+npm i
+npm start
+```
+
+# 概述
 使用create-react-app作为脚手架，结合React+Redux+React-router，构建一个简单的单页面应用demo。
 
 - create-react-app：脚手架
@@ -9,7 +17,7 @@
 - redux-thunk：redux的一个中间件。可以使action creator返回一个`function`（而不仅仅是`object`），并且使得dispatch方法可以接收一个`function`作为参数，通过这种改造使得action支持异步（或延迟）操作
 - redux-actions：针对redux的一个FSA工具箱，可以相应简化与标准化action与reducer部分
 
-## 使用create-react-app脚手架
+# 使用create-react-app脚手架
 [create-react-app](https://github.com/facebookincubator/create-react-app)是Facebook官方出品的脚手架。有了它，你只需要一行指令即可跳过webpack繁琐的配置、npm繁多的引入等过程，迅速构建react项目。
 
 首先安装create-react-app
@@ -28,8 +36,8 @@ create-react-app react-redux-demo
 打开访问`localhost:3000`看到下方对应的页面，就说明项目基础框架创建完毕了。
 ![启动页面](http://upload-images.jianshu.io/upload_images/6476654-ceeeda7ba166a8fe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-## 创建React组件
-### 修改目录结构
+# 创建React组件
+## 修改目录结构
 下面在我们的react-redux-demo项目，查看一下相应的目录结构
 ```
 |--public
@@ -63,7 +71,7 @@ create-react-app react-redux-demo
 ```
 在`src`目录下新建了`page`和`component`两个目录分别用于存放页面组件和通用组件。页面组件包括`welcome.js`和商品列表页`good.js`，通用组件包括了一个导航栏`nav`。
 
-### 两种组件形式
+## 两种组件形式
 编写页面或组件，类似于静态页的开发。推荐的组件写法有两种：
 
 **1）纯函数形式**：该类组件为无状态组件。由于使用函数来定义，因此不能访问`this`对象，同时也没有生命周期方法，只能访问`props`。这类组件主要是一些纯展示类的小组件，通过将这些小组件进行组合构成更为复杂的组件。例如：
@@ -248,7 +256,7 @@ export default Goods;
 
 ![](http://upload-images.jianshu.io/upload_images/6476654-48a1dac919bf9f16.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-## 使用redux来管理数据流
+# 使用redux来管理数据流
 
 ![redux数据流示意图](http://www.ruanyifeng.com/blogimg/asset/2016/bg2016091802.jpg)
 redux是flux架构的一种实现。图中展示了，在react+redux框架下，一个点击事件是如何进行交互的。
@@ -288,7 +296,7 @@ npm i --save redux-actions
 |--node_modules
 ```
 
-### 首先，创建action
+## 首先，创建action
 首先，我们要创建对应的action。
 
 action是一个`object`类型，对于action的结构有Flux有相关的标准化建议[FSA](https://github.com/acdlite/flux-standard-action)
@@ -334,7 +342,7 @@ export const getGoods = createAction('GET_GOODS');
 ```
 \* 此外，还可以使用`createActions`同时创建多个action creators。
 
-### 其次，创建state的处理方法——reducer
+## 其次，创建state的处理方法——reducer
 针对不同的action，会有不同的reducer对应进行state处理，它们通过type的值相互对应。
 reducer是一个处理state的方法（function），该方法接收两个参数，当前状态`state`和对应的`action`。根据`state`与`action`，reducer会进行处理并返回一个新的`state`（同时也是一个新的`object`，而不去修改原`state`）。可以通过简单的switch操作来实现：
 
@@ -391,7 +399,7 @@ export const goods = handleActions({
 });
 ```
 
-### 然后，对reducer进行合并
+## 然后，对reducer进行合并
 因为在redux中会统一管理一个store，因此，需要将不用的reducer所处理的state进行合并。
 
 redux为我们提供了`combineReducers`方法。当业务逻辑过多时，我们可以将多个reducer进行组合，生成一个统一的reducer。虽然现在我们只有一个reducer，但是为了拓展性和示范性，在这里还是创建了一个`reducer/index.js`文件来进行reducer的合并，生成一个`rootReducer`。
@@ -472,7 +480,6 @@ const mapStateToProps = (state, ownProps) => ({
 // -export default Goods;
 export default connect(mapStateToProps)(Goods);
 ```
-### 
 此外，也可以为组件中相应的方法映射对应的action的触发：
 
 ```
@@ -481,7 +488,7 @@ const mapDispatchToProps = dispatch => ({
 });
 ```
 
-### 最后，在组件渲染完成后触发整个flow
+## 最后，在组件渲染完成后触发整个flow
 如果产生了一个需要状态更新的交互，可以通过在组件中相应部分触发action来实现状态更新-->组件更新。触发方式：
 
 ```
@@ -577,7 +584,7 @@ export default App;
 ```
 现在访问页面，虽然效果和之前一致，但是其内部构造和原理已经大不相同了。
 
-## 最后一部分：添加路由系统
+# 最后一部分：添加路由系统
 单页应用中的重要部分，就是路由系统。由于不同普通的页面跳转刷新，因此单页应用会有一套自己的路由系统需要维护。
 
 我们当然可以手写一个路由系统，但是，为了快速有效地创建于管理我们的应用，我们可以选择一个好用的路由系统。本文选择了react-router 4。这里需要注意，在v4版本里，react-router将WEB部分的路由系统拆分至了`react-router-dom`，因此需要npm`react-router-dom`
