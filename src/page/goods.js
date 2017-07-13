@@ -2,27 +2,13 @@ import React, { Component } from 'react';
 import {connect} from 'react-redux';
 import * as actions from '../action/goods';
 
-const GOODS = [{
-    name: 'iPhone 7',
-    price: '6,888',
-    amount: 37
-}, {
-    name: 'iPad',
-    price: '3,488',
-    amount: 82
-}, {
-    name: 'MacBook Pro',
-    price: '11,888',
-    amount: 15
-}]; 
-
 class Goods extends Component {
     componentDidMount() {
         let dispatch = this.props.dispatch;
-        dispatch(actions.getGoods(GOODS));
+        dispatch(actions.getGoods());
     }
     render() {
-        return (
+        return this.props.isFetching ? (<h1>Loading…</h1>) : (
             <ul className="goods">
                 {
                     this.props.goods.map((ele, idx) => (
@@ -39,6 +25,7 @@ class Goods extends Component {
 }
 
 const mapStateToProps = (state, ownProps) => ({
+    isFetching: state.goods.isFetching,
     goods: state.goods.data
 });
 
