@@ -1,6 +1,6 @@
 # 运行方式
-```javascript
-// npm i -g create-react-app
+```bash
+# npm i -g create-react-app
 cd ${this_repo}
 npm i
 npm start
