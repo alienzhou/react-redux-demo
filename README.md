@@ -1,7 +1,7 @@
 # 运行方式
 ```
-npm i -g create-react-app
-cd $this_repo
+// npm i -g create-react-app
+cd ${this_repo}
 npm i
 npm start
 ```
