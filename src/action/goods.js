@@ -21,7 +21,7 @@ const fetchData = () => {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             resolve(GOODS);
-        }, 15000);
+        }, 1500);
     });
 };
 
